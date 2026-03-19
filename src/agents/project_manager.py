@@ -14,7 +14,7 @@ def run_project_manager(ctx: WorkflowContext, config: Config) -> WorkflowContext
         task.status = TaskStatus.IN_PROGRESS
         print(f"[PM] {task.agent.upper()} task started.")
 
-        # Phase 2: real agent dispatch
+        # Phase 2+3: real agent dispatch
         if task.agent == "researcher":
             from src.agents.researcher import run_researcher
             ctx = run_researcher(ctx, config)
@@ -23,11 +23,20 @@ def run_project_manager(ctx: WorkflowContext, config: Config) -> WorkflowContext
             from src.agents.publisher import run_publisher
             ctx = run_publisher(ctx, config)
             task.result = f"PDF published at: {ctx.published_pdf_path}"
+        elif task.agent == "reviewer":
+            from src.agents.ceo import run_reviewer
+            ctx = run_reviewer(ctx, config)
+            task.result = f"Review complete. Approved: {ctx.review_approved}"
+        elif task.agent == "mailer":
+            from src.agents.mailer import run_mailer
+            ctx = run_mailer(ctx, config)
+            task.result = f"Email sent to {config.recipient_email}"
 
         task.status = TaskStatus.COMPLETE
         print(f"[PM] {task.agent.upper()} task COMPLETE.")
 
     _print_status_report(ctx)
+    print(f"[PM] Delivered to: {config.recipient_email}")
     return ctx
 
 

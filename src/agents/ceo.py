@@ -7,6 +7,8 @@ Your job: given a research topic, produce:
 1. A concise set of objectives (3-5 bullet points) for the white paper.
 2. A task brief for the Researcher (what to investigate, which knowledge areas to cover).
 3. A task brief for the Publisher (what tone, structure, and format to use for the white paper).
+4. A task brief for the Reviewer (what quality standards to apply when reviewing the white paper).
+5. A task brief for the Mailer (who to send the approved white paper to).
 
 Respond in exactly this format:
 OBJECTIVES:
@@ -17,6 +19,12 @@ RESEARCHER TASK:
 
 PUBLISHER TASK:
 <task brief>
+
+REVIEWER TASK:
+Review the white paper against the stated objectives and confirm it meets executive standards.
+
+MAILER TASK:
+Send the approved white paper PDF to the configured recipient email address.
 """
 
 
@@ -37,12 +45,14 @@ def run_ceo(ctx: WorkflowContext, config: Config) -> WorkflowContext:
     response_text = message.content[0].text
 
     # Parse objectives and task briefs from structured response
-    objectives, researcher_brief, publisher_brief = _parse_ceo_response(response_text)
+    objectives, researcher_brief, publisher_brief, reviewer_brief, mailer_brief = _parse_ceo_response(response_text)
 
     ctx.objectives = objectives
     ctx.tasks = [
         AgentTask(agent="researcher", instructions=researcher_brief),
         AgentTask(agent="publisher", instructions=publisher_brief),
+        AgentTask(agent="reviewer", instructions=reviewer_brief),
+        AgentTask(agent="mailer", instructions=mailer_brief),
     ]
 
     print(f"[CEO] Objectives defined:\n{objectives}")
@@ -50,20 +60,19 @@ def run_ceo(ctx: WorkflowContext, config: Config) -> WorkflowContext:
     return ctx
 
 
-def _parse_ceo_response(text: str) -> tuple[str, str, str]:
-    """Extract objectives, researcher brief, and publisher brief from CEO response."""
+def _parse_ceo_response(text: str) -> tuple[str, str, str, str, str]:
+    """Extract objectives, researcher brief, publisher brief, reviewer brief, and mailer brief from CEO response."""
     objectives = ""
     researcher_brief = ""
     publisher_brief = ""
+    reviewer_brief = ""
+    mailer_brief = ""
 
     current_section = None
     lines_buffer: list[str] = []
 
     for line in text.splitlines():
         if line.startswith("OBJECTIVES:"):
-            if current_section and lines_buffer:
-                _assign_section(current_section, lines_buffer,
-                                 objectives, researcher_brief, publisher_brief)
             current_section = "objectives"
             lines_buffer = []
         elif line.startswith("RESEARCHER TASK:"):
@@ -74,11 +83,23 @@ def _parse_ceo_response(text: str) -> tuple[str, str, str]:
             researcher_brief = "\n".join(lines_buffer).strip()
             current_section = "publisher"
             lines_buffer = []
+        elif line.startswith("REVIEWER TASK:"):
+            publisher_brief = "\n".join(lines_buffer).strip()
+            current_section = "reviewer"
+            lines_buffer = []
+        elif line.startswith("MAILER TASK:"):
+            reviewer_brief = "\n".join(lines_buffer).strip()
+            current_section = "mailer"
+            lines_buffer = []
         else:
             lines_buffer.append(line)
 
     # Capture the last section
-    if current_section == "publisher":
+    if current_section == "mailer":
+        mailer_brief = "\n".join(lines_buffer).strip()
+    elif current_section == "reviewer":
+        reviewer_brief = "\n".join(lines_buffer).strip()
+    elif current_section == "publisher":
         publisher_brief = "\n".join(lines_buffer).strip()
     elif current_section == "researcher":
         researcher_brief = "\n".join(lines_buffer).strip()
@@ -92,8 +113,12 @@ def _parse_ceo_response(text: str) -> tuple[str, str, str]:
         researcher_brief = f"Research the topic: {text[:200]}"
     if not publisher_brief:
         publisher_brief = "Produce a professional 2-2.5 page white paper from the research."
+    if not reviewer_brief:
+        reviewer_brief = "Review the white paper against the stated objectives and confirm it meets executive standards."
+    if not mailer_brief:
+        mailer_brief = "Send the approved white paper PDF to the configured recipient email address."
 
-    return objectives, researcher_brief, publisher_brief
+    return objectives, researcher_brief, publisher_brief, reviewer_brief, mailer_brief
 
 
 def _assign_section(section: str, lines: list[str],
