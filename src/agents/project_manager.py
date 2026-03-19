@@ -5,8 +5,7 @@ from src.config import Config
 def run_project_manager(ctx: WorkflowContext, config: Config) -> WorkflowContext:
     """
     Tracks Researcher and Publisher tasks to completion.
-    Phase 1: agent calls are stubs that immediately mark tasks COMPLETE.
-    Phase 2 will replace stubs with real agent implementations.
+    Phase 2: real agent calls dispatch to Researcher and Publisher.
     """
     print("[PM] Starting task tracking...")
     print(f"[PM] {len(ctx.tasks)} tasks delegated by CEO.")
@@ -15,29 +14,21 @@ def run_project_manager(ctx: WorkflowContext, config: Config) -> WorkflowContext
         task.status = TaskStatus.IN_PROGRESS
         print(f"[PM] {task.agent.upper()} task started.")
 
-        # Phase 1 stub — Phase 2 replaces this block
+        # Phase 2: real agent dispatch
         if task.agent == "researcher":
-            task.result = _stub_researcher(task, ctx)
+            from src.agents.researcher import run_researcher
+            ctx = run_researcher(ctx, config)
+            task.result = f"Research complete. {len(ctx.research_output)} chars."
         elif task.agent == "publisher":
-            task.result = _stub_publisher(task, ctx)
+            from src.agents.publisher import run_publisher
+            ctx = run_publisher(ctx, config)
+            task.result = f"PDF published at: {ctx.published_pdf_path}"
 
         task.status = TaskStatus.COMPLETE
         print(f"[PM] {task.agent.upper()} task COMPLETE.")
 
     _print_status_report(ctx)
     return ctx
-
-
-def _stub_researcher(task: AgentTask, ctx: WorkflowContext) -> str:
-    """Placeholder. Phase 2 will call the real Researcher agent here."""
-    print(f"  [Researcher STUB] Would research: {ctx.topic!r}")
-    return f"[STUB] Research complete for topic: {ctx.topic}"
-
-
-def _stub_publisher(task: AgentTask, ctx: WorkflowContext) -> str:
-    """Placeholder. Phase 2 will call the real Publisher agent here."""
-    print(f"  [Publisher STUB] Would publish white paper for: {ctx.topic!r}")
-    return "[STUB] PDF generated at output/whitepaper.pdf"
 
 
 def _print_status_report(ctx: WorkflowContext) -> None:
