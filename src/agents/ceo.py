@@ -99,3 +99,51 @@ def _parse_ceo_response(text: str) -> tuple[str, str, str]:
 def _assign_section(section: str, lines: list[str],
                     objectives: str, researcher: str, publisher: str) -> None:
     pass  # helper only used for side-effect flow — assignments done inline above
+
+
+REVIEWER_SYSTEM_PROMPT = """You are the CEO of a white paper production company acting as quality reviewer.
+Given a topic, objectives, and a research summary, decide if a white paper produced from this content
+would meet professional executive standards and clearly address all stated objectives.
+
+Respond in exactly this format:
+APPROVED
+<1-2 sentences of positive confirmation explaining why the content meets standards>
+
+or:
+REJECTED
+<1-2 sentences explaining what falls short and what would need improvement>
+
+Do not include any other text before or after. The first line must be exactly APPROVED or REJECTED."""
+
+
+def run_reviewer(ctx: WorkflowContext, config: Config) -> WorkflowContext:
+    """Calls Claude API to review whether the white paper meets the stated objectives."""
+    client = anthropic.Anthropic(api_key=config.anthropic_api_key)
+
+    user_message = (
+        f"Topic: {ctx.topic}\n\n"
+        f"Objectives:\n{ctx.objectives}\n\n"
+        f"Research summary (first 2000 chars):\n{ctx.research_output[:2000]}"
+    )
+
+    message = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=256,
+        system=REVIEWER_SYSTEM_PROMPT,
+        messages=[
+            {"role": "user", "content": user_message},
+        ],
+    )
+
+    response_text = message.content[0].text.strip()
+    lines = response_text.splitlines()
+    verdict = lines[0].strip().upper() if lines else ""
+    feedback = "\n".join(lines[1:]).strip() if len(lines) > 1 else ""
+
+    ctx.review_approved = verdict == "APPROVED"
+    ctx.review_feedback = feedback
+
+    status = "APPROVED" if ctx.review_approved else "REJECTED"
+    print(f"[CEO Reviewer] Review complete. {status}: {ctx.review_feedback[:100]}")
+
+    return ctx
