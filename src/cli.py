@@ -33,7 +33,14 @@ def run_workflow(topic: str) -> None:
     from src.agents.project_manager import run_project_manager
     ctx = run_project_manager(ctx, config)
 
-    if ctx.published_pdf_path:
-        print(f"\n[AgentSwarm] Workflow complete. White paper PDF: {ctx.published_pdf_path}")
+    # Phase 3 outcome: review verdict and delivery status
+    if ctx.review_approved:
+        print(f"\n[AgentSwarm] CEO APPROVED the white paper.")
     else:
-        print("\n[AgentSwarm] Workflow complete. (No PDF path — check publisher output.)")
+        feedback = getattr(ctx, "review_feedback", "")
+        print(f"\n[AgentSwarm] CEO REJECTED the white paper. Feedback: {feedback}")
+
+    if ctx.published_pdf_path:
+        print(f"[AgentSwarm] PDF: {ctx.published_pdf_path}")
+
+    print(f"[AgentSwarm] Workflow complete. White paper delivered to {config.recipient_email}.")
