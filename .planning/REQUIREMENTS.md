@@ -26,7 +26,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Review
 
-- [ ] **REV-01**: CEO agent reviews the final document for clarity and objective alignment
+- [x] **REV-01**: CEO agent reviews the final document for clarity and objective alignment
 
 ### Delivery
 
@@ -74,7 +74,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PUB-01 | Phase 2 | Complete |
 | PUB-02 | Phase 2 | Complete |
 | PUB-03 | Phase 2 | Complete |
-| REV-01 | Phase 3 | Pending |
+| REV-01 | Phase 3 | Complete |
 | DEL-01 | Phase 3 | Pending |
 | DEL-02 | Phase 3 | Pending |
 
