@@ -30,8 +30,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Delivery
 
-- [ ] **DEL-01**: Mailer agent emails the approved PDF as an attachment
-- [ ] **DEL-02**: Email sent via Gmail SMTP with app password
+- [x] **DEL-01**: Mailer agent emails the approved PDF as an attachment
+- [x] **DEL-02**: Email sent via Gmail SMTP with app password
 
 ## v2 Requirements
 
@@ -75,8 +75,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PUB-02 | Phase 2 | Complete |
 | PUB-03 | Phase 2 | Complete |
 | REV-01 | Phase 3 | Complete |
-| DEL-01 | Phase 3 | Pending |
-| DEL-02 | Phase 3 | Pending |
+| DEL-01 | Phase 3 | Complete |
+| DEL-02 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 11 total
