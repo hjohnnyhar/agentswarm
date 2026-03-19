@@ -26,3 +26,4 @@ class WorkflowContext:
     research_output: str = ""
     published_pdf_path: str = ""
     review_approved: bool = False
+    review_feedback: str = ""
