@@ -19,8 +19,18 @@ def parse_args() -> argparse.Namespace:
 
 
 def run_workflow(topic: str) -> None:
-    """Entry point for the full agent workflow. CEO delegation added in plan 02."""
+    """Full agent workflow: CEO delegation -> PM tracking -> (Phase 2: research/publish)."""
     config = Config()
     ctx = WorkflowContext(topic=topic)
+
     print(f"[AgentSwarm] Workflow started for topic: {ctx.topic!r}")
-    print("[AgentSwarm] CEO agent will delegate tasks — orchestration coming in plan 02.")
+
+    # Phase 1: CEO interprets and delegates
+    from src.agents.ceo import run_ceo
+    ctx = run_ceo(ctx, config)
+
+    # Phase 1: PM tracks tasks (stubs for Researcher/Publisher until Phase 2)
+    from src.agents.project_manager import run_project_manager
+    ctx = run_project_manager(ctx, config)
+
+    print("\n[AgentSwarm] Phase 1 complete. CEO delegated, PM tracked all tasks.")
