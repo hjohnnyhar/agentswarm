@@ -57,7 +57,7 @@ Plans:
 Plans:
 - [ ] 02-01-PLAN.md — Researcher agent: Claude API research across 5 knowledge areas (RSRCH-01, RSRCH-02)
 - [ ] 02-02-PLAN.md — Publisher agent: white paper text + matplotlib chart + reportlab PDF (PUB-01, PUB-02, PUB-03)
-- [ ] 02-03-PLAN.md — Wire PM stubs to real agents, update CLI, human verify end-to-end (all Phase 2 requirements)
+- [x] 02-03-PLAN.md — Wire PM stubs to real agents, update CLI, human verify end-to-end (all Phase 2 requirements) (completed 2026-03-19)
 
 ---
 
