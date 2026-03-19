@@ -33,4 +33,7 @@ def run_workflow(topic: str) -> None:
     from src.agents.project_manager import run_project_manager
     ctx = run_project_manager(ctx, config)
 
-    print("\n[AgentSwarm] Phase 1 complete. CEO delegated, PM tracked all tasks.")
+    if ctx.published_pdf_path:
+        print(f"\n[AgentSwarm] Workflow complete. White paper PDF: {ctx.published_pdf_path}")
+    else:
+        print("\n[AgentSwarm] Workflow complete. (No PDF path — check publisher output.)")
