@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-03-19T00:56:49.958Z"
-last_activity: Completed plan 02-01 — Researcher agent implemented
+stopped_at: Completed 02-03-PLAN.md (checkpoint awaiting human verification)
+last_updated: "2026-03-19T00:59:49.096Z"
+last_activity: Completed plan 02-02 — Publisher agent implemented
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
-  percent: 80
+  completed_plans: 5
+  percent: 100
 ---
 
 # State: AgentSwarm
@@ -32,13 +32,13 @@ progress:
 ## Current Position
 
 **Phase:** 2 - Research & Publishing
-**Plan:** 02 complete (Publisher agent implemented)
-**Status:** In progress
-**Progress:** [████████░░] 80%
+**Plan:** 03 complete (integration — awaiting human verification checkpoint)
+**Status:** In progress (checkpoint)
+**Progress:** [██████████] 100%
 
 ```
 Phase 1: [████████████████████████████] 100% (2/2 plans complete — human verified)
-Phase 2: [███████████████████░░░░░░░░░] ~67% (2/3 plans complete)
+Phase 2: [████████████████████████████] 100% (3/3 plans complete — awaiting human verify)
 ```
 
 ---
@@ -51,7 +51,7 @@ Phase 2: [███████████████████░░░░�
 | Phase | Requirements | Status |
 |-------|--------------|--------|
 | 1 | ORCH-01, ORCH-02, ORCH-03 | Complete (human verified) |
-| 2 | RSRCH-01, RSRCH-02, PUB-01, PUB-02, PUB-03 | In progress (RSRCH-01, RSRCH-02 complete) |
+| 2 | RSRCH-01, RSRCH-02, PUB-01, PUB-02, PUB-03 | Complete (awaiting human verification) |
 | 3 | REV-01, DEL-01, DEL-02 | Not started |
 
 ---
@@ -74,6 +74,8 @@ Phase 2: [███████████████████░░░░�
 | Missing sections prepend WARNING comment rather than raising | Partial research is better than nothing for PoC reliability | Locked (02-01) |
 | matplotlib Agg backend for chart generation | Avoids display dependency on Windows headless environment | Locked (02-02) |
 | XML special chars escaped in reportlab Paragraph text | Prevents XML parsing errors when white paper body contains &, <, > | Locked (02-02) |
+| ctx reassigned inside task loop for publisher ordering | Publisher task receives research_output from researcher when loop iterates in CEO task order | Locked (02-03) |
+| Deferred imports in PM dispatch match cli.py pattern | Avoids circular imports; consistent with established deferred import pattern | Locked (02-03) |
 
 ---
 
@@ -89,6 +91,7 @@ Phase 2: [███████████████████░░░░�
 | 01-02 | 10 min | 2 | 4 |
 | Phase 02-research-publishing P01 | 5 | 1 tasks | 1 files |
 | Phase 02-research-publishing P02 | 1 min | 2 tasks | 2 files |
+| Phase 02-research-publishing P03 | 5 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -104,18 +107,17 @@ Plans 01-01 and 01-02 executed cleanly. Human verified end-to-end workflow with 
 
 ## Session Continuity
 
-**Last activity:** Completed plan 02-02 — Publisher agent implemented
-**Stopped at:** Completed 02-02-PLAN.md
+**Last activity:** Completed plan 02-03 — PM integration complete, awaiting human verification
+**Stopped at:** Completed 02-03-PLAN.md (checkpoint awaiting human verification)
 **What happened:**
-- Installed matplotlib and reportlab into TastyTrade conda env; updated requirements.txt
-- Implemented src/agents/publisher.py: run_publisher() calls claude-haiku-4-5 with max_tokens=2000 for ~900-1100 word white paper
-- PUBLISHER_SYSTEM_PROMPT produces 9-section professional white paper (Title through Conclusion)
-- _generate_chart() uses matplotlib Agg backend for bar chart saved to output/chart.png
-- _render_pdf() uses reportlab Platypus to render letter-size PDF with embedded chart image
-- ctx.published_pdf_path set to "output/whitepaper.pdf"
-- PUB-01, PUB-02, PUB-03 requirements satisfied
+- Replaced _stub_researcher and _stub_publisher in project_manager.py with real dispatch to run_researcher/run_publisher
+- ctx reassigned inside the for-loop so publisher receives research_output from researcher
+- Deferred imports used in PM dispatch (from src.agents.X import run_X) consistent with cli.py pattern
+- cli.py run_workflow() now prints ctx.published_pdf_path after workflow completes
+- Phase 1 "complete" message removed; Phase 2 "Workflow complete. White paper PDF: ..." message added
+- All Phase 2 requirements satisfied (RSRCH-01, RSRCH-02, PUB-01, PUB-02, PUB-03)
 
-**Ready for:** Phase 2 Plan 03 (human verify checkpoint — end-to-end PDF output)
+**Ready for:** Human verification — run `python main.py --topic "Quantum Computing"` and confirm PDF/chart output
 
 ---
 
