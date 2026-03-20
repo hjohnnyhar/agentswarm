@@ -58,8 +58,9 @@ def run_mailer(ctx, config):
     with open(ctx.published_pdf_path, "rb") as f:
         pdf_bytes = f.read()
 
-    attachment = MIMEApplication(pdf_bytes, Name="whitepaper.pdf")
-    attachment["Content-Disposition"] = 'attachment; filename="whitepaper.pdf"'
+    pdf_filename = os.path.basename(ctx.published_pdf_path)
+    attachment = MIMEApplication(pdf_bytes, Name=pdf_filename)
+    attachment["Content-Disposition"] = f'attachment; filename="{pdf_filename}"'
     msg.attach(attachment)
 
     # --- Send via Gmail SMTP with STARTTLS ---

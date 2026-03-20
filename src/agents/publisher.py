@@ -1,8 +1,8 @@
 import os
+import re
 import anthropic
-import matplotlib
-matplotlib.use("Agg")  # Non-interactive backend — required on Windows without display
-import matplotlib.pyplot as plt
+import urllib.parse
+import urllib.request
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -15,21 +15,21 @@ from src.config import Config
 
 PUBLISHER_SYSTEM_PROMPT = """You are a professional technical writer producing executive white papers.
 
-Given research notes and objectives, write a polished 2-2.5 page white paper with the following structure:
+Given research notes and objectives, write a polished white paper with the following structure:
 
 1. Title: A concise, professional title derived from the topic (single line)
 2. Executive Summary: 1 paragraph summarizing the key findings and significance
 3. Introduction: 1 paragraph introducing the topic and context
-4. Background & History: 1-2 tight paragraphs on origins and historical context
-5. Current State & Key Players: 1-2 paragraphs on the present landscape
-6. Technical Foundations: 1-2 paragraphs on core technical concepts and mechanisms
-7. Challenges & Controversies: 1-2 paragraphs on open problems and limitations
-8. Future Outlook & Implications: 1-2 paragraphs on projected developments
+4. Background & History: 1 tight paragraph on origins and historical context
+5. Current State & Key Players: 1 paragraph on the present landscape
+6. Technical Foundations: 1 paragraph on core technical concepts and mechanisms
+7. Challenges & Controversies: 1 paragraph on open problems and limitations
+8. Future Outlook & Implications: 1 paragraph on projected developments
 9. Conclusion: 1 paragraph synthesizing the key takeaways
 
 Rules:
 - Use formal, professional prose throughout. Do not use bullet lists in the body.
-- Aim for approximately 900-1100 words total (excluding the title).
+- HARD LIMIT: Maximum 800 words total (excluding the title). Aim for 600-800 words.
 - Begin the response with "Title: <title text>" on its own line.
 - Separate each section with a blank line.
 - Use the section names above as headers (e.g., "Executive Summary", "Introduction", etc.).
@@ -37,19 +37,30 @@ Rules:
 
 
 def run_publisher(ctx: WorkflowContext, config: Config) -> WorkflowContext:
-    """Generate white paper PDF from research markdown using Claude, matplotlib, and reportlab."""
+    """Generate white paper PDF from research markdown using Claude, stock photo, and reportlab."""
     print("[Publisher] Generating white paper from research...")
     os.makedirs("output", exist_ok=True)
 
-    # Step 1: Generate white paper text via Claude
+    # Step 1: Generate white paper text via Claude (with word count enforcement)
     whitepaper_text = _generate_whitepaper_text(ctx, config)
-    print(f"[Publisher] White paper text generated ({len(whitepaper_text)} chars).")
+    word_count = len(whitepaper_text.split())
+    max_attempts = 3
+    attempt = 1
+    while word_count > 800 and attempt < max_attempts:
+        attempt += 1
+        print(f"[Publisher] Text is {word_count} words (max 800). Reworking (attempt {attempt}/{max_attempts})...")
+        whitepaper_text = _rework_text(whitepaper_text, config)
+        word_count = len(whitepaper_text.split())
+    print(f"[Publisher] White paper text generated ({word_count} words, {len(whitepaper_text)} chars).")
 
-    # Step 2: Generate chart
-    chart_path = _generate_chart(ctx)
+    # Step 2: Fetch stock photo
+    image_path = _fetch_stock_photo(ctx.topic)
 
-    # Step 3: Render PDF
-    pdf_path = _render_pdf(whitepaper_text, chart_path, ctx.topic)
+    # Step 3: Derive filename from title and render PDF
+    title = _extract_title(whitepaper_text, ctx.topic)
+    pdf_filename = _slugify(title) + ".pdf"
+    pdf_path = os.path.join("output", pdf_filename)
+    _render_pdf(whitepaper_text, image_path, ctx.topic, pdf_path)
 
     ctx.published_pdf_path = pdf_path
     print(f"[Publisher] Complete. PDF at: {pdf_path}")
@@ -78,35 +89,52 @@ def _generate_whitepaper_text(ctx: WorkflowContext, config: Config) -> str:
     return message.content[0].text
 
 
-def _generate_chart(ctx: WorkflowContext) -> str:
-    """Generate a bar chart illustrating relative importance of the 5 research areas."""
-    categories = [
-        "Background",
-        "Current State",
-        "Technical\nFoundations",
-        "Challenges",
-        "Future\nOutlook",
-    ]
-    scores = [7, 9, 8, 6, 8]  # Illustrative relative importance
-
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.bar(categories, scores, color="#4472C4")
-    ax.set_ylabel("Relative Importance")
-    ax.set_title(f"Key Research Areas: {ctx.topic}")
-    ax.set_ylim(0, 10)
-    plt.tight_layout()
-
-    chart_path = "output/chart.png"
-    plt.savefig(chart_path, dpi=150)
-    plt.close(fig)
-
-    print(f"[Publisher] Chart saved to {chart_path}")
-    return chart_path
+def _rework_text(text: str, config: Config) -> str:
+    """Ask Claude to condense the white paper to under 800 words."""
+    client = anthropic.Anthropic(api_key=config.anthropic_api_key)
+    message = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=1500,
+        system="You are an editor. Condense the following white paper to a maximum of 800 words. Keep the same structure, title line, and section headers. Preserve the most important content.",
+        messages=[{"role": "user", "content": text}],
+    )
+    return message.content[0].text
 
 
-def _render_pdf(whitepaper_text: str, chart_path: str, topic: str) -> str:
-    """Render white paper text and chart into a letter-size PDF using reportlab."""
-    pdf_path = "output/whitepaper.pdf"
+def _extract_title(whitepaper_text: str, fallback: str) -> str:
+    """Extract the title from the white paper text."""
+    for line in whitepaper_text.strip().split("\n"):
+        stripped = line.strip()
+        if stripped.lower().startswith("title:"):
+            return stripped[len("title:"):].strip()
+    return fallback
+
+
+def _slugify(text: str) -> str:
+    """Convert text to a filesystem-safe slug."""
+    text = text.lower().strip()
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'[\s_]+', '-', text)
+    text = re.sub(r'-+', '-', text)
+    return text[:80].strip('-')
+
+
+def _fetch_stock_photo(topic: str) -> str:
+    """Fetch a relevant stock photo from Unsplash (free, no API key needed)."""
+    image_path = "output/cover.jpg"
+    query = urllib.parse.quote(topic[:50])
+    url = f"https://source.unsplash.com/800x400/?{query}"
+    try:
+        urllib.request.urlretrieve(url, image_path)
+        print(f"[Publisher] Cover image saved to {image_path}")
+    except Exception as e:
+        print(f"[Publisher] Could not fetch stock photo ({e}), continuing without image.")
+        return ""
+    return image_path
+
+
+def _render_pdf(whitepaper_text: str, image_path: str, topic: str, pdf_path: str) -> str:
+    """Render white paper text and optional image into a letter-size PDF using reportlab."""
 
     doc = SimpleDocTemplate(
         pdf_path,
@@ -216,15 +244,16 @@ def _render_pdf(whitepaper_text: str, chart_path: str, topic: str) -> str:
 
     flush_paragraph()
 
-    # Chart image
-    story.append(Spacer(1, 0.3 * inch))
-    story.append(Image(chart_path, width=6 * inch, height=3 * inch))
-    story.append(
-        Paragraph(
-            "Figure 1: Key Research Areas by Relative Importance",
-            caption_style,
+    # Cover image (stock photo)
+    if image_path and os.path.exists(image_path):
+        story.append(Spacer(1, 0.3 * inch))
+        story.append(Image(image_path, width=6 * inch, height=3 * inch))
+        story.append(
+            Paragraph(
+                f"Image: {topic}",
+                caption_style,
+            )
         )
-    )
 
     doc.build(story)
     print(f"[Publisher] PDF written to {pdf_path}")
